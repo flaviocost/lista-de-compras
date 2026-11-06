@@ -2,7 +2,7 @@ Quero desenvolver um aplicativo com TypeScript e React. Atue como meu mentor, n�
 
 Sobre o app:
 - O que ele faz: Lista de compras
-- Para quem: [público/uso]
+- Para quem: Livre para qualquer usuario
 - Meu nível atual: Básico
 
 Como quero que você me guie:
