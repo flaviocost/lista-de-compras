@@ -1,241 +1,395 @@
 
 import { useState } from "react";
-import type { FormEvent } from "react";
+import type { KeyboardEvent } from "react";
 import type { ItemCompra } from "./item";
 
-export default function App() {
+type ListaCompras = {
+  id: string;
+  nome: string;
+  produtos: ItemCompra[];
+};
 
-  //formulário
-  const [nome, setNome] = useState ("");
+export default function App() {
+  // Campos do formulário
+  const [nome, setNome] = useState("");
   const [preco, setPreco] = useState("");
   const [quantidade, setQuantidade] = useState("");
 
-  //parte da lista de produtos
-  const [lista, setLista] = useState<ItemCompra[]>([]);
+  // Listas de compras
+  const [listas, setListas] = useState<ListaCompras[]>([]);
+  const [listaSelecionada, setListaSelecionada] = useState<string | null>(null);
 
-  //essa parte guarda o produto que ta sendo editado
+  // Produto em edição
   const [produtoEditado, setProdutoEditado] = useState<string | null>(null);
 
-  //formata o valor em reais (R$)
-  function formatarDinheiro(valor : number){
+  // Localiza a lista selecionada
+  const listaAtual = listas.find(
+    (lista) => lista.id === listaSelecionada
+  );
+
+  // Produtos da lista selecionada
+  const produtos = listaAtual?.produtos ?? [];
+
+  // Formata valores em reais
+  function formatarDinheiro(valor: number) {
     return (valor / 100).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
     });
   }
 
-//essa parte limpa os campos do formulário
-function limparFormulario(){
-  setNome("");
-  setPreco("");
-  setQuantidade("");
-  setProdutoEditado(null);
-}
-
-//essa parte vai adicionar ou atualizar um produto
-function adicionarProduto (evento: FormEvent<HTMLFormElement>){
-  evento.preventDefault();
-
-  const nomeLimpo = nome.trim();
-  const valor = Number(preco);
-  const qtd = Number(quantidade);
-
-  //verifica se os dados estão corretos
-  if(
-    nomeLimpo === "" ||
-    preco.trim() === "" ||
-    quantidade.trim() === "" ||
-    !Number.isFinite(valor) ||
-    !Number.isInteger(qtd) ||
-    valor <= 0 ||
-    qtd <= 0
-  ){
-    alert("Preencha os campos com valores válidos.");
-    return;
+  // Limpa os campos
+  function limparFormulario() {
+    setNome("");
+    setPreco("");
+    setQuantidade("");
+    setProdutoEditado(null);
   }
 
-const precoCentavos = Math.round(valor * 100);
+  // cria uma nova lista perguntando o nome do mercado
+  function adicionarLista() {
+    const nomeMercado = window.prompt(
+      "Qual é o mercado onde você vai fazer as compras?"
+    );
 
-// Atualiza o produto selecionado
- if (produtoEditado !== null) {
-  
-      setLista((produtos) =>
-        produtos.map((produto) =>
-          produto.id === produtoEditado
-            ? {
-                ...produto,
-                nome: nomeLimpo,
-                precoUnitarioCentavos: precoCentavos,
-                quantidade: qtd,
-              }
-            : produto
-        )
-      );
-    } else {
-      // Cria um novo produto
-      const novoProduto: ItemCompra = {
-        id: crypto.randomUUID(),
-        nome: nomeLimpo,
-        precoUnitarioCentavos: precoCentavos,
-        quantidade: qtd,
-      };
-
-      setLista((produtos) => [...produtos, novoProduto]);
+    if (nomeMercado === null || nomeMercado.trim() === "") {
+      return;
     }
+
+    const novaLista: ListaCompras = {
+      id: crypto.randomUUID(),
+      nome: nomeMercado.trim(),
+      produtos: [],
+    };
+
+    setListas((listasAtuais) => [
+      ...listasAtuais,
+      novaLista,
+    ]);
+
+    setListaSelecionada(novaLista.id);
+    limparFormulario();
+  }
+
+  // Seleciona uma lista existente
+  function selecionarLista(id: string) {
+    setListaSelecionada(id);
+    limparFormulario();
+  }
+
+  // Adiciona ou atualiza um produto
+  function adicionarProduto() {
+    if (listaSelecionada === null) {
+      return;
+    }
+
+    const nomeLimpo = nome.trim();
+    const valor = Number(preco);
+    const qtd = Number(quantidade);
+
+    // valida os campos
+    if (
+      nomeLimpo === "" ||
+      preco.trim() === "" ||
+      quantidade.trim() === "" ||
+      !Number.isFinite(valor) ||
+      !Number.isInteger(qtd) ||
+      valor <= 0 ||
+      qtd <= 0
+    ) {
+      return;
+    }
+
+    const precoCentavos = Math.round(valor * 100);
+
+    setListas((listasAtuais) =>
+      listasAtuais.map((lista) => {
+        if (lista.id !== listaSelecionada) {
+          return lista;
+        }
+
+        // Atualiza produto existente
+        if (produtoEditado !== null) {
+          return {
+            ...lista,
+            produtos: lista.produtos.map((produto) =>
+              produto.id === produtoEditado
+                ? {
+                    ...produto,
+                    nome: nomeLimpo,
+                    precoUnitarioCentavos: precoCentavos,
+                    quantidade: qtd,
+                  }
+                : produto
+            ),
+          };
+        }
+
+        // cadastra um produto novo
+        const novoProduto: ItemCompra = {
+          id: crypto.randomUUID(),
+          nome: nomeLimpo,
+          precoUnitarioCentavos: precoCentavos,
+          quantidade: qtd,
+        };
+
+        return {
+          ...lista,
+          produtos: [...lista.produtos, novoProduto],
+        };
+      })
+    );
 
     limparFormulario();
   }
 
-  //parte que coloca os dados do produto no formulário
-  function editarProduto(produto: ItemCompra){
+  //  essa parte deixa cadastrar usando o botão enter Enter
+  function confirmarComEnter(evento: KeyboardEvent<HTMLInputElement>) {
+    if (evento.key === "Enter") {
+      evento.preventDefault();
+      adicionarProduto();
+    }
+  }
+
+  // Carrega um produto para edição
+  function editarProduto(produto: ItemCompra) {
     setNome(produto.nome);
-    setPreco((produto.precoUnitarioCentavos / 100).toFixed(2));
+    setPreco(
+      (produto.precoUnitarioCentavos / 100).toFixed(2)
+    );
     setQuantidade(String(produto.quantidade));
     setProdutoEditado(produto.id);
   }
 
-//parte que remove um produto da lista
-function removerProduto(id: string) {
-  const confirmar = window.confirm("Certeza que deseja remover esse produto?");
-
-if (!confirmar) return;
-
- setLista((produtos) =>
-      produtos.filter((produto) => produto.id !== id)
+  // Remove um produto
+  function removerProduto(id: string) {
+    const confirmar = window.confirm(
+      "Deseja realmente remover este produto?"
     );
 
-    if(produtoEditado === id){
-      limparFormulario();
+    if (!confirmar || listaSelecionada === null) {
+      return;
     }
-  }    
 
-//parte que calcula o valor total da compra
-const totalCentavos = lista.reduce((total, produto) => {
-  if (produto.id === produtoEditado) {
-    const precoAtual = Number(preco);
-    const quantidadeAtual = Number(quantidade);
+    setListas((listasAtuais) =>
+      listasAtuais.map((lista) =>
+        lista.id === listaSelecionada
+          ? {
+              ...lista,
+              produtos: lista.produtos.filter(
+                (produto) => produto.id !== id
+              ),
+            }
+          : lista
+      )
+    );
 
-        if (preco.trim() !== "" && quantidade.trim() !== "") {
-      return total +
-        Math.round(precoAtual * 100) * quantidadeAtual;
+    if (produtoEditado === id) {
+      limparFormulario();
     }
   }
 
-  return total +
-  produto.precoUnitarioCentavos * produto.quantidade;
-}, 0);
+  // Calcula o total dos produtos cadastrados
+  const totalCentavos = produtos.reduce((total, produto) => {
+    // Considera os valores atuais durante a edição
+    if (produto.id === produtoEditado) {
+      const precoAtual = Number(preco);
+      const qtdAtual = Number(quantidade);
 
-//parte que soma o formulario quando for um produto novo
-const totalFinal =
-  totalCentavos +
-  (produtoEditado === null &&
-  preco.trim() !== "" &&
-  quantidade.trim() !== ""
-    ? Math.round(Number(preco) * 100) * Number(quantidade)
-    : 0);
+      if (
+        preco.trim() !== "" &&
+        quantidade.trim() !== "" &&
+        Number.isFinite(precoAtual) &&
+        Number.isInteger(qtdAtual) &&
+        precoAtual > 0 &&
+        qtdAtual > 0
+      ) {
+        return total + Math.round(precoAtual * 100) * qtdAtual;
+      }
+    }
 
+    return (
+      total +
+      produto.precoUnitarioCentavos * produto.quantidade
+    );
+  }, 0);
 
+  // Prévia do produto novo enquanto os campos são preenchidos
+  const produtoNovoValido =
+    produtoEditado === null &&
+    nome.trim() !== "" &&
+    preco.trim() !== "" &&
+    quantidade.trim() !== "" &&
+    Number.isFinite(Number(preco)) &&
+    Number.isInteger(Number(quantidade)) &&
+    Number(preco) > 0 &&
+    Number(quantidade) > 0;
 
+  const totalFinal =
+    totalCentavos +
+    (
+      produtoNovoValido
+        ? Math.round(Number(preco) * 100) * Number(quantidade)
+        : 0
+    );
 
   return (
     <>
-    <h1>Lista de Compras</h1>
+      <h1>Minhas listas de compras</h1>
 
-    <form onSubmit={adicionarProduto}>
-
-      <h2>
-        {produtoEditado !== null
-        ? "Editar produto"
-      : "Adicione o produto"}
-      </h2>
-
-      <div>
-        <label htmlFor="nome">Nome do produto</label>
-        <br />
-        <input
-        id="nome"
-        type="text"
-        placeholder="Ex.: Macarrão"
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
-        />
-      </div>
-
-      <br />
-
-      <div>
-        <label htmlFor="preco">Preço unitario (R$)</label>
-        <br />
-        <input
-        id="preco"
-        type="number"
-        min={0.01}
-        step={0.01}
-        placeholder="Ex.: 3.00"
-        value={preco}
-        onChange={(e) => setPreco(e.target.value)}
-        />
-      </div>
-
-      <br />
-
-      <div>
-        <label htmlFor="quantidade">Quantidade do produto selecionado</label>
-        <br />
-        <input
-        id="quantidade"
-        type="number"
-        min={1}
-        step={1}
-        placeholder="Ex.: 4"
-        value={quantidade}
-        onChange={(e) => setQuantidade(e.target.value)}
-        />
-      </div>
-
-      <button type="submit">
-        {produtoEditado !== null ? "Salvar alterações" : "Adicionar"}
+      {/* Criar nova lista */}
+      <button type="button" onClick={adicionarLista}>
+        + Nova lista
       </button>
-       {produtoEditado !== null &&(
 
-        <button type="button" onClick={limparFormulario}>
-          Cancelar edição
-        </button>
-       )}
-    </form>
+      {/* Mostrar listas e nomes dos mercados */}
+      <h2>Minhas listas</h2>
 
-    <h2>Produtos adicionados</h2>
+      {listas.length === 0 ? (
+        <p>Nenhuma lista criada ainda.</p>
+      ) : (
+        <ul>
+          {listas.map((lista) => (
+            <li key={lista.id}>
+              <button
+                type="button"
+                onClick={() => selecionarLista(lista.id)}
+              >
+                {lista.nome}
+                {listaSelecionada === lista.id
+                  ? " (Selecionada)"
+                  : ""}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
-    {lista.length === 0 ? (
-      <p>Nenhum produto adicionado ainda.</p>
-    ) : (
-      <ul>
-        {lista.map((produto) => (
-          <li key={produto.id}>
-            <strong>{produto.nome}</strong>
-            {" — "}
-            {produto.quantidade} x{" "}
-            {formatarDinheiro(produto.precoUnitarioCentavos)}
-            {" = "}
-            {formatarDinheiro(
-              produto.precoUnitarioCentavos * produto.quantidade
+      {/* Conteúdo da lista selecionada */}
+      {listaAtual && (
+        <>
+          {/* colocar o nome do mercado */}
+          <h2>Mercado: {listaAtual.nome}</h2>
+
+          {/* Formulário */}
+          <form onSubmit={(evento) => evento.preventDefault()}>
+            <h3>
+              {produtoEditado !== null
+                ? "Editar produto"
+                : "Adicionar produto"}
+            </h3>
+
+            <div>
+              <label htmlFor="nome">Nome do produto</label>
+              <br />
+              <input
+                id="nome"
+                type="text"
+                placeholder="Ex.: Feijão"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+              />
+            </div>
+
+            <br />
+
+            <div>
+              <label htmlFor="preco">Preço unitário (R$)</label>
+              <br />
+              <input
+                id="preco"
+                type="number"
+                min={0.01}
+                step={0.01}
+                placeholder="Ex.: 5.00"
+                value={preco}
+                onChange={(e) => setPreco(e.target.value)}
+              />
+            </div>
+
+            <br />
+
+            <div>
+              <label htmlFor="quantidade">
+                Quantidade do produto
+              </label>
+              <br />
+              <input
+                id="quantidade"
+                type="number"
+                min={1}
+                step={1}
+                placeholder="Ex.: 9"
+                value={quantidade}
+                onChange={(e) => setQuantidade(e.target.value)}
+                onBlur={adicionarProduto}
+                onKeyDown={confirmarComEnter}
+              />
+            </div>
+
+            <p>
+              {produtoEditado !== null
+                ? "Saia do campo quantidade ou pressione Enter para salvar."
+                : "O produto será cadastrado ao sair do campo quantidade ou pressionar Enter."}
+            </p>
+
+            {produtoEditado !== null && (
+              <button
+                type="button"
+                onClick={limparFormulario}
+              >
+                Cancelar edição
+              </button>
             )}
+          </form>
 
-            {" "}
+          {/* Produtos cadastrados */}
+          <h2>Produtos adicionados</h2>
 
-            <button type="button" onClick={() => editarProduto(produto)}>Editar</button>
+          {produtos.length === 0 ? (
+            <p>Nenhum produto adicionado ainda.</p>
+          ) : (
+            <ul>
+              {produtos.map((produto) => (
+                <li key={produto.id}>
+                  <strong>{produto.nome}</strong>
+                  {" — "}
+                  {produto.quantidade} x{" "}
+                  {formatarDinheiro(
+                    produto.precoUnitarioCentavos
+                  )}
+                  {" = "}
+                  {formatarDinheiro(
+                    produto.precoUnitarioCentavos *
+                    produto.quantidade
+                  )}
 
-            <button type="button" onClick={() => removerProduto(produto.id)}>Remover</button>
+                  {" "}
 
+                  <button
+                    type="button"
+                    onClick={() => editarProduto(produto)}
+                  >
+                    Editar
+                  </button>
 
+                  <button
+                    type="button"
+                    onClick={() => removerProduto(produto.id)}
+                  >
+                    Remover
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
 
-
-          </li>
-        ))}
-      </ul>
-    )}
-
-    <h2>Total da compra: {formatarDinheiro(totalFinal)}</h2>
+          {/* total sempre visível na lista selecionada */}
+          <h2>
+            Total da compra: {formatarDinheiro(totalFinal)}
+          </h2>
+        </>
+      )}
     </>
-    );
+  );
 }
