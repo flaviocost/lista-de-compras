@@ -1,0 +1,503 @@
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #f5f7f8;
+  background: #2e4149;
+  font-synthesis: none;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  background: #2e4149;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+}
+
+.app {
+  width: 100%;
+  max-width: 650px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding-bottom: 35px;
+}
+
+/* CABEÇALHO */
+
+.topbar {
+  min-height: 82px;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.topbar h1 {
+  font-size: 27px;
+  font-weight: 700;
+}
+
+.edit-button {
+  background: transparent;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.back-button {
+  color: white;
+  background: transparent;
+  font-size: 40px;
+  line-height: 1;
+}
+
+.header-count {
+  color: #c4d0d4;
+  font-size: 13px;
+}
+
+/* TELA INICIAL */
+
+.home-screen {
+  padding: 24px 28px;
+}
+
+.lists-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.list-card {
+  height: 210px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 13px;
+  padding: 26px;
+  display: flex;
+  background: linear-gradient(
+    110deg,
+    #547e89,
+    #729ba5
+  );
+  box-shadow: 0 4px 9px rgba(0,0,0,0.12);
+}
+
+.card-1 {
+  background: linear-gradient(
+    110deg,
+    #8398b0,
+    #a4b5c8
+  );
+}
+
+.card-2 {
+  background: linear-gradient(
+    110deg,
+    #4c818c,
+    #78a5aa
+  );
+}
+
+.card-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-content h2 {
+  font-size: 32px;
+  font-weight: 700;
+  max-width: 220px;
+  overflow-wrap: anywhere;
+}
+
+.card-decoration {
+  position: absolute;
+  right: 0;
+  bottom: -15px;
+  font-size: 115px;
+  transform: rotate(-15deg);
+  opacity: 0.95;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.profile-icon,
+.shared-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #30454e;
+  font-size: 22px;
+}
+
+.shared-icon {
+  color: white;
+  font-size: 29px;
+}
+
+.open-list-button {
+  position: absolute;
+  z-index: 3;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.7);
+  color: #30434b;
+  font-size: 38px;
+  line-height: 1;
+}
+
+.item-badge {
+  width: fit-content;
+  margin-top: 12px;
+  padding: 7px 15px;
+  border-radius: 25px;
+  background: #dc5963;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.delete-list-button {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  z-index: 4;
+  color: white;
+  background: #c94e57;
+  border-radius: 20px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+/* CRIAR LISTA */
+
+.create-list-button {
+  width: 100%;
+  min-height: 105px;
+  margin-top: 38px;
+  border-radius: 12px;
+  background: #43545b;
+  color: white;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  box-shadow: 0 4px 7px rgba(0,0,0,0.12);
+}
+
+.plus-icon {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  background: #263d47;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 39px;
+  font-weight: 400;
+}
+
+/* RECOMENDAÇÕES */
+
+.recommendations {
+  margin-top: 55px;
+}
+
+.recommendations h2 {
+  font-size: 21px;
+  margin-bottom: 18px;
+}
+
+.recommendation-container {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scrollbar-width: none;
+}
+
+.recommendation-container::-webkit-scrollbar {
+  display: none;
+}
+
+.recommendation-card {
+  min-width: 150px;
+  height: 205px;
+  padding: 20px;
+  border-radius: 12px;
+  color: white;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.party {
+  background: linear-gradient(145deg, #765779, #a18bb4);
+}
+
+.holiday {
+  background: linear-gradient(145deg, #3d7778, #74a9a0);
+}
+
+.drugstore {
+  background: linear-gradient(145deg, #758ca7, #a5b7c9);
+}
+
+.recommendation-emoji {
+  font-size: 52px;
+  text-align: right;
+}
+
+/* ESTADOS VAZIOS */
+
+.empty-state,
+.empty-products {
+  text-align: center;
+  padding: 40px 20px;
+  color: #d4dfe2;
+}
+
+.empty-icon,
+.empty-products span {
+  display: block;
+  font-size: 55px;
+  margin-bottom: 15px;
+}
+
+.empty-state h2 {
+  margin-bottom: 10px;
+  font-size: 21px;
+}
+
+/* TELA DE COMPRAS */
+
+.shopping-screen {
+  padding: 25px 28px;
+}
+
+.shopping-summary {
+  background: #435861;
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.shopping-summary span {
+  color: #c8d5d9;
+  font-size: 15px;
+}
+
+.shopping-summary strong {
+  font-size: 32px;
+}
+
+/* FORMULÁRIO */
+
+.product-form {
+  background: #3b5059;
+  border-radius: 14px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.product-form h2 {
+  margin-bottom: 10px;
+  font-size: 21px;
+}
+
+.product-form label {
+  font-size: 14px;
+  color: #d3dfe2;
+}
+
+.product-form input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid #647982;
+  border-radius: 9px;
+  outline: none;
+  background: #2d414a;
+  color: white;
+}
+
+.product-form input:focus {
+  border-color: #8fc9c2;
+}
+
+.product-form input::placeholder {
+  color: #94a5aa;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.add-product-button {
+  height: 50px;
+  border-radius: 9px;
+  background: #77b5a8;
+  color: #183c3b;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.cancel-button {
+  background: transparent;
+  color: #e0c5c5;
+  padding: 10px;
+}
+
+/* PRODUTOS */
+
+.products-section {
+  margin-top: 35px;
+}
+
+.products-section h2 {
+  font-size: 22px;
+  margin-bottom: 18px;
+}
+
+.product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.product-card {
+  background: #435861;
+  padding: 18px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.product-info strong {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.product-info span {
+  font-size: 13px;
+  color: #c5d1d5;
+}
+
+.product-info b {
+  color: #91d1bf;
+  font-size: 16px;
+}
+
+.product-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.product-actions button {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  color: white;
+  background: #30464f;
+  font-size: 22px;
+}
+
+.bottom-total {
+  background: #243a43;
+  padding: 22px;
+  margin-top: 25px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.bottom-total strong {
+  color: #91d1bf;
+  font-size: 20px;
+}
+
+/* TELAS PEQUENAS */
+
+@media (max-width: 400px) {
+  .home-screen,
+  .shopping-screen {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .list-card {
+    height: 190px;
+    padding: 20px;
+  }
+
+  .card-content h2 {
+    font-size: 28px;
+  }
+
+  .create-list-button {
+    font-size: 21px;
+  }
+
+  .topbar {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}

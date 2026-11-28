@@ -1,36 +1,47 @@
 
-import { useState } from "react";
-import type { KeyboardEvent } from "react";
-import type { ItemCompra } from "./item";
+import { useEffect, useState } from "react";
 
-type ListaCompras = {
-  id: string;
-  nome: string;
-  produtos: ItemCompra[];
-};
+import type { ItemCompra, ListaCompras } from "./item";
+
+import {
+  carregarListas,
+  salvarListas,
+} from "./armazenamento";
+
+import "./App.css";
 
 export default function App() {
-  // Campos do formulário
+  // Estados das listas
+  const [listas, setListas] = useState<ListaCompras[]>(
+    () => carregarListas()
+  );
+
+  const [listaSelecionada, setListaSelecionada] =
+    useState<string | null>(null);
+
+  // Estados do formulário
   const [nome, setNome] = useState("");
   const [preco, setPreco] = useState("");
   const [quantidade, setQuantidade] = useState("");
 
-  // Listas de compras
-  const [listas, setListas] = useState<ListaCompras[]>([]);
-  const [listaSelecionada, setListaSelecionada] = useState<string | null>(null);
+  const [produtoEditado, setProdutoEditado] =
+    useState<string | null>(null);
 
-  // Produto em edição
-  const [produtoEditado, setProdutoEditado] = useState<string | null>(null);
+  const [modoEdicao, setModoEdicao] = useState(false);
 
-  // Localiza a lista selecionada
+  // Salva as listas sempre que houver alterações
+  useEffect(() => {
+    salvarListas(listas);
+  }, [listas]);
+
+  // Lista selecionada
   const listaAtual = listas.find(
     (lista) => lista.id === listaSelecionada
   );
 
-  // Produtos da lista selecionada
   const produtos = listaAtual?.produtos ?? [];
 
-  // Formata valores em reais
+  // Formata dinheiro
   function formatarDinheiro(valor: number) {
     return (valor / 100).toLocaleString("pt-BR", {
       style: "currency",
@@ -38,7 +49,7 @@ export default function App() {
     });
   }
 
-  // Limpa os campos
+  // Limpa formulário
   function limparFormulario() {
     setNome("");
     setPreco("");
@@ -46,13 +57,13 @@ export default function App() {
     setProdutoEditado(null);
   }
 
-  // cria uma nova lista perguntando o nome do mercado
+  // Cria uma nova lista
   function adicionarLista() {
     const nomeMercado = window.prompt(
-      "Qual é o mercado onde você vai fazer as compras?"
+      "Qual é o nome do mercado?"
     );
 
-    if (nomeMercado === null || nomeMercado.trim() === "") {
+    if (!nomeMercado || nomeMercado.trim() === "") {
       return;
     }
 
@@ -62,32 +73,53 @@ export default function App() {
       produtos: [],
     };
 
-    setListas((listasAtuais) => [
-      ...listasAtuais,
-      novaLista,
-    ]);
+    setListas((atuais) => [...atuais, novaLista]);
 
     setListaSelecionada(novaLista.id);
     limparFormulario();
   }
 
-  // Seleciona uma lista existente
+  // Abre uma lista
   function selecionarLista(id: string) {
     setListaSelecionada(id);
     limparFormulario();
   }
 
-  // Adiciona ou atualiza um produto
-  function adicionarProduto() {
-    if (listaSelecionada === null) {
-      return;
+  // Volta para a tela inicial
+  function voltarInicio() {
+    setListaSelecionada(null);
+    limparFormulario();
+  }
+
+  // Exclui uma lista
+  function removerLista(id: string) {
+    const confirmar = window.confirm(
+      "Deseja realmente excluir esta lista?"
+    );
+
+    if (!confirmar) return;
+
+    setListas((atuais) =>
+      atuais.filter((lista) => lista.id !== id)
+    );
+
+    if (listaSelecionada === id) {
+      voltarInicio();
     }
+  }
+
+  // Adiciona ou atualiza um produto
+  function adicionarProduto(
+    evento: React.FormEvent<HTMLFormElement>
+  ) {
+    evento.preventDefault();
+
+    if (listaSelecionada === null) return;
 
     const nomeLimpo = nome.trim();
     const valor = Number(preco);
     const qtd = Number(quantidade);
 
-    // valida os campos
     if (
       nomeLimpo === "" ||
       preco.trim() === "" ||
@@ -97,18 +129,19 @@ export default function App() {
       valor <= 0 ||
       qtd <= 0
     ) {
+      alert("Preencha todos os campos corretamente.");
       return;
     }
 
     const precoCentavos = Math.round(valor * 100);
 
-    setListas((listasAtuais) =>
-      listasAtuais.map((lista) => {
+    setListas((atuais) =>
+      atuais.map((lista) => {
         if (lista.id !== listaSelecionada) {
           return lista;
         }
 
-        // Atualiza produto existente
+        // Edita produto existente
         if (produtoEditado !== null) {
           return {
             ...lista,
@@ -117,20 +150,20 @@ export default function App() {
                 ? {
                     ...produto,
                     nome: nomeLimpo,
-                    precoUnitarioCentavos: precoCentavos,
                     quantidade: qtd,
+                    precoUnitarioCentavos: precoCentavos,
                   }
                 : produto
             ),
           };
         }
 
-        // cadastra um produto novo
+        // Cria novo produto
         const novoProduto: ItemCompra = {
           id: crypto.randomUUID(),
           nome: nomeLimpo,
-          precoUnitarioCentavos: precoCentavos,
           quantidade: qtd,
+          precoUnitarioCentavos: precoCentavos,
         };
 
         return {
@@ -143,36 +176,31 @@ export default function App() {
     limparFormulario();
   }
 
-  //  essa parte deixa cadastrar usando o botão enter Enter
-  function confirmarComEnter(evento: KeyboardEvent<HTMLInputElement>) {
-    if (evento.key === "Enter") {
-      evento.preventDefault();
-      adicionarProduto();
-    }
-  }
-
-  // Carrega um produto para edição
+  // Edita um produto
   function editarProduto(produto: ItemCompra) {
     setNome(produto.nome);
+
     setPreco(
       (produto.precoUnitarioCentavos / 100).toFixed(2)
     );
+
     setQuantidade(String(produto.quantidade));
+
     setProdutoEditado(produto.id);
   }
 
-  // Remove um produto
+  // Remove produto
   function removerProduto(id: string) {
+    if (listaSelecionada === null) return;
+
     const confirmar = window.confirm(
-      "Deseja realmente remover este produto?"
+      "Deseja remover este produto?"
     );
 
-    if (!confirmar || listaSelecionada === null) {
-      return;
-    }
+    if (!confirmar) return;
 
-    setListas((listasAtuais) =>
-      listasAtuais.map((lista) =>
+    setListas((atuais) =>
+      atuais.map((lista) =>
         lista.id === listaSelecionada
           ? {
               ...lista,
@@ -189,152 +217,314 @@ export default function App() {
     }
   }
 
-  // Calcula o total dos produtos cadastrados
-  const totalCentavos = produtos.reduce((total, produto) => {
-    // Considera os valores atuais durante a edição
-    if (produto.id === produtoEditado) {
-      const precoAtual = Number(preco);
-      const qtdAtual = Number(quantidade);
-
-      if (
-        preco.trim() !== "" &&
-        quantidade.trim() !== "" &&
-        Number.isFinite(precoAtual) &&
-        Number.isInteger(qtdAtual) &&
-        precoAtual > 0 &&
-        qtdAtual > 0
-      ) {
-        return total + Math.round(precoAtual * 100) * qtdAtual;
-      }
-    }
-
-    return (
+  // Calcula o total da compra
+  const totalCentavos = produtos.reduce(
+    (total, produto) =>
       total +
-      produto.precoUnitarioCentavos * produto.quantidade
-    );
-  }, 0);
-
-  // Prévia do produto novo enquanto os campos são preenchidos
-  const produtoNovoValido =
-    produtoEditado === null &&
-    nome.trim() !== "" &&
-    preco.trim() !== "" &&
-    quantidade.trim() !== "" &&
-    Number.isFinite(Number(preco)) &&
-    Number.isInteger(Number(quantidade)) &&
-    Number(preco) > 0 &&
-    Number(quantidade) > 0;
-
-  const totalFinal =
-    totalCentavos +
-    (
-      produtoNovoValido
-        ? Math.round(Number(preco) * 100) * Number(quantidade)
-        : 0
-    );
+      produto.precoUnitarioCentavos * produto.quantidade,
+    0
+  );
 
   return (
-    <>
-      <h1>Minhas listas de compras</h1>
+    <main className="app">
 
-      {/* Criar nova lista */}
-      <button type="button" onClick={adicionarLista}>
-        + Nova lista
-      </button>
+      {/* CABEÇALHO */}
+      <header className="topbar">
+        {listaAtual ? (
+          <>
+            <button
+              className="back-button"
+              onClick={voltarInicio}
+              type="button"
+            >
+              ‹
+            </button>
 
-      {/* Mostrar listas e nomes dos mercados */}
-      <h2>Minhas listas</h2>
+            <h1>{listaAtual.nome}</h1>
 
-      {listas.length === 0 ? (
-        <p>Nenhuma lista criada ainda.</p>
-      ) : (
-        <ul>
-          {listas.map((lista) => (
-            <li key={lista.id}>
-              <button
-                type="button"
-                onClick={() => selecionarLista(lista.id)}
+            <span className="header-count">
+              {produtos.length} itens
+            </span>
+          </>
+        ) : (
+          <>
+            <h1>Minhas listas</h1>
+
+            <button
+              className="edit-button"
+              onClick={() => setModoEdicao(!modoEdicao)}
+              type="button"
+            >
+              {modoEdicao ? "CONCLUÍDO" : "EDITAR"}
+            </button>
+          </>
+        )}
+      </header>
+
+      {/* TELA INICIAL */}
+      {!listaAtual && (
+        <section className="home-screen">
+
+          <div className="lists-container">
+
+            {listas.length === 0 && (
+              <div className="empty-state">
+                <span className="empty-icon">🛒</span>
+                <h2>Suas compras começam aqui</h2>
+                <p>
+                  Crie sua primeira lista para organizar
+                  suas compras.
+                </p>
+              </div>
+            )}
+
+            {listas.map((lista, index) => (
+              <article
+                className={`list-card card-${index % 3}`}
+                key={lista.id}
               >
-                {lista.nome}
-                {listaSelecionada === lista.id
-                  ? " (Selecionada)"
-                  : ""}
+                <div className="card-decoration">
+                  {index % 3 === 0
+                    ? "🥕"
+                    : index % 3 === 1
+                      ? "☕"
+                      : "🥬"}
+                </div>
+
+                <div className="card-content">
+                  <h2>{lista.nome}</h2>
+
+                  {lista.produtos.length > 0 && (
+                    <span className="item-badge">
+                      {lista.produtos.length}{" "}
+                      {lista.produtos.length === 1
+                        ? "item"
+                        : "itens"}
+                    </span>
+                  )}
+
+                  <div className="card-footer">
+                    <span className="profile-icon">👤</span>
+
+                    <span className="shared-icon">
+                      +
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  className="open-list-button"
+                  onClick={() => selecionarLista(lista.id)}
+                  type="button"
+                  aria-label={`Abrir lista ${lista.nome}`}
+                >
+                  ›
+                </button>
+
+                {modoEdicao && (
+                  <button
+                    className="delete-list-button"
+                    onClick={() => removerLista(lista.id)}
+                    type="button"
+                  >
+                    Excluir
+                  </button>
+                )}
+              </article>
+            ))}
+
+          </div>
+
+          {/* BOTÃO CRIAR LISTA */}
+          <button
+            className="create-list-button"
+            onClick={adicionarLista}
+            type="button"
+          >
+            <span className="plus-icon">+</span>
+            Criar lista
+          </button>
+
+          {/* RECOMENDAÇÕES */}
+          <section className="recommendations">
+            <h2>Recomendações de listas</h2>
+
+            <div className="recommendation-container">
+
+              <button
+                className="recommendation-card party"
+                onClick={() => {
+                  const nome = window.prompt(
+                    "Nome da lista:",
+                    "Festa"
+                  );
+
+                  if (!nome?.trim()) return;
+
+                  const novaLista: ListaCompras = {
+                    id: crypto.randomUUID(),
+                    nome: nome.trim(),
+                    produtos: [],
+                  };
+
+                  setListas((atuais) => [
+                    ...atuais,
+                    novaLista,
+                  ]);
+
+                  setListaSelecionada(novaLista.id);
+                }}
+                type="button"
+              >
+                <span>Sua próxima festa</span>
+                <span className="recommendation-emoji">🎉</span>
               </button>
-            </li>
-          ))}
-        </ul>
+
+              <button
+                className="recommendation-card holiday"
+                onClick={() => {
+                  const nome = window.prompt(
+                    "Nome da lista:",
+                    "Casa de férias"
+                  );
+
+                  if (!nome?.trim()) return;
+
+                  const novaLista: ListaCompras = {
+                    id: crypto.randomUUID(),
+                    nome: nome.trim(),
+                    produtos: [],
+                  };
+
+                  setListas((atuais) => [
+                    ...atuais,
+                    novaLista,
+                  ]);
+
+                  setListaSelecionada(novaLista.id);
+                }}
+                type="button"
+              >
+                <span>Sua casa de férias</span>
+                <span className="recommendation-emoji">🏖️</span>
+              </button>
+
+              <button
+                className="recommendation-card drugstore"
+                onClick={() => {
+                  const nome = window.prompt(
+                    "Nome da lista:",
+                    "Farmácia"
+                  );
+
+                  if (!nome?.trim()) return;
+
+                  const novaLista: ListaCompras = {
+                    id: crypto.randomUUID(),
+                    nome: nome.trim(),
+                    produtos: [],
+                  };
+
+                  setListas((atuais) => [
+                    ...atuais,
+                    novaLista,
+                  ]);
+
+                  setListaSelecionada(novaLista.id);
+                }}
+                type="button"
+              >
+                <span>Para a farmácia</span>
+                <span className="recommendation-emoji">💊</span>
+              </button>
+
+            </div>
+          </section>
+        </section>
       )}
 
-      {/* Conteúdo da lista selecionada */}
+      {/* TELA DA LISTA SELECIONADA */}
       {listaAtual && (
-        <>
-          {/* colocar o nome do mercado */}
-          <h2>Mercado: {listaAtual.nome}</h2>
+        <section className="shopping-screen">
 
-          {/* Formulário */}
-          <form onSubmit={(evento) => evento.preventDefault()}>
-            <h3>
-              {produtoEditado !== null
+          <div className="shopping-summary">
+            <span>Valor total da compra</span>
+            <strong>
+              {formatarDinheiro(totalCentavos)}
+            </strong>
+          </div>
+
+          {/* FORMULÁRIO */}
+          <form
+            className="product-form"
+            onSubmit={adicionarProduto}
+          >
+            <h2>
+              {produtoEditado
                 ? "Editar produto"
                 : "Adicionar produto"}
-            </h3>
+            </h2>
 
-            <div>
-              <label htmlFor="nome">Nome do produto</label>
-              <br />
-              <input
-                id="nome"
-                type="text"
-                placeholder="Ex.: Feijão"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-              />
+            <label htmlFor="nome">
+              Nome do produto
+            </label>
+
+            <input
+              id="nome"
+              type="text"
+              placeholder="Ex.: Arroz"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+            />
+
+            <div className="form-row">
+              <div>
+                <label htmlFor="preco">
+                  Preço unitário
+                </label>
+
+                <input
+                  id="preco"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={preco}
+                  onChange={(e) => setPreco(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="quantidade">
+                  Quantidade
+                </label>
+
+                <input
+                  id="quantidade"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="1"
+                  value={quantidade}
+                  onChange={(e) =>
+                    setQuantidade(e.target.value)
+                  }
+                  required
+                />
+              </div>
             </div>
 
-            <br />
+            <button className="add-product-button" type="submit">
+              {produtoEditado
+                ? "Salvar alterações"
+                : "+ Adicionar produto"}
+            </button>
 
-            <div>
-              <label htmlFor="preco">Preço unitário (R$)</label>
-              <br />
-              <input
-                id="preco"
-                type="number"
-                min={0.01}
-                step={0.01}
-                placeholder="Ex.: 5.00"
-                value={preco}
-                onChange={(e) => setPreco(e.target.value)}
-              />
-            </div>
-
-            <br />
-
-            <div>
-              <label htmlFor="quantidade">
-                Quantidade do produto
-              </label>
-              <br />
-              <input
-                id="quantidade"
-                type="number"
-                min={1}
-                step={1}
-                placeholder="Ex.: 9"
-                value={quantidade}
-                onChange={(e) => setQuantidade(e.target.value)}
-                onBlur={adicionarProduto}
-                onKeyDown={confirmarComEnter}
-              />
-            </div>
-
-            <p>
-              {produtoEditado !== null
-                ? "Saia do campo quantidade ou pressione Enter para salvar."
-                : "O produto será cadastrado ao sair do campo quantidade ou pressionar Enter."}
-            </p>
-
-            {produtoEditado !== null && (
+            {produtoEditado && (
               <button
+                className="cancel-button"
                 type="button"
                 onClick={limparFormulario}
               >
@@ -343,53 +533,73 @@ export default function App() {
             )}
           </form>
 
-          {/* Produtos cadastrados */}
-          <h2>Produtos adicionados</h2>
+          {/* PRODUTOS */}
+          <div className="products-section">
+            <h2>Produtos da lista</h2>
 
-          {produtos.length === 0 ? (
-            <p>Nenhum produto adicionado ainda.</p>
-          ) : (
-            <ul>
-              {produtos.map((produto) => (
-                <li key={produto.id}>
-                  <strong>{produto.nome}</strong>
-                  {" — "}
-                  {produto.quantidade} x{" "}
-                  {formatarDinheiro(
-                    produto.precoUnitarioCentavos
-                  )}
-                  {" = "}
-                  {formatarDinheiro(
-                    produto.precoUnitarioCentavos *
-                    produto.quantidade
-                  )}
-
-                  {" "}
-
-                  <button
-                    type="button"
-                    onClick={() => editarProduto(produto)}
+            {produtos.length === 0 ? (
+              <div className="empty-products">
+                <span>🛍️</span>
+                <p>Nenhum produto adicionado ainda.</p>
+              </div>
+            ) : (
+              <div className="product-list">
+                {produtos.map((produto) => (
+                  <article
+                    className="product-card"
+                    key={produto.id}
                   >
-                    Editar
-                  </button>
+                    <div className="product-info">
+                      <strong>{produto.nome}</strong>
 
-                  <button
-                    type="button"
-                    onClick={() => removerProduto(produto.id)}
-                  >
-                    Remover
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                      <span>
+                        {produto.quantidade} x{" "}
+                        {formatarDinheiro(
+                          produto.precoUnitarioCentavos
+                        )}
+                      </span>
 
-          {/* total sempre visível na lista selecionada */}
-          <h2>
-            Total da compra: {formatarDinheiro(totalFinal)}
-          </h2>
-        </>
+                      <b>
+                        {formatarDinheiro(
+                          produto.precoUnitarioCentavos *
+                            produto.quantidade
+                        )}
+                      </b>
+                    </div>
+
+                    <div className="product-actions">
+                      <button
+                        onClick={() => editarProduto(produto)}
+                        type="button"
+                        aria-label="Editar produto"
+                      >
+                        ✎
+                      </button>
+
+                      <button
+                        onClick={() => removerProduto(produto.id)}
+                        type="button"
+                        aria-label="Remover produto"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bottom-total">
+            <span>Total da compra</span>
+            <strong>
+              {formatarDinheiro(totalCentavos)}
+            </strong>
+          </div>
+
+        </section>
       )}
-    </>
+
+    </main>
   );
 }
