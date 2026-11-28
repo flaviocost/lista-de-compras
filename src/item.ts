@@ -4,3 +4,9 @@ export type ItemCompra = {
     quantidade: number; 
     precoUnitarioCentavos: number;
 };
+
+export type ListaCompras = {
+  id: string;
+  nome: string;
+  produtos: ItemCompra[];
+};
